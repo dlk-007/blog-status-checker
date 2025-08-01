@@ -1,0 +1,61 @@
+import requests
+import time
+from datetime import datetime
+import csv
+
+def check_website_status(url):
+    """웹사이트 상태를 확인하는 함수"""
+    try:
+        if not url.startswith(('http://', 'https://')):
+            url = 'https://' + url
+            
+        response = requests.get(url, timeout=10)
+        status_code = response.status_code
+        
+        if status_code == 200:
+            return "정상", status_code
+        else:
+            return "오류", status_code
+    except requests.exceptions.Timeout:
+        return "타임아웃", None
+    except requests.exceptions.ConnectionError:
+        return "연결 실패", None
+    except Exception as e:
+        return f"오류: {str(e)}", None
+
+def main():
+    with open('1.txt', 'r', encoding='utf-8') as file:
+        urls = [line.strip() for line in file.readlines() if line.strip()]
+    
+    results = []
+    current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    print(f"블로그 상태 확인 시작: {current_time}")
+    
+    for i, url in enumerate(urls, 1):
+        status, code = check_website_status(url)
+        
+        if code:
+            print(f"{i:2d}. {url:<30} - {status} ({code})")
+        else:
+            print(f"{i:2d}. {url:<30} - {status}")
+        
+        results.append({
+            'URL': url,
+            'Status': status,
+            'Status_Code': code,
+            'Check_Time': current_time
+        })
+        
+        time.sleep(1)
+    
+    with open('blog_status_check.csv', 'w', newline='', encoding='utf-8') as csvfile:
+        fieldnames = ['URL', 'Status', 'Status_Code', 'Check_Time']
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(results)
+    
+    print(f"\n결과가 'blog_status_check.csv' 파일로 저장되었습니다.")
+
+if __name__ == "__main__":
+    main()
